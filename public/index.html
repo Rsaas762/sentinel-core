@@ -1,0 +1,976 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, user-scalable=no, maximum-scale=1">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Sentinel">
+<meta name="theme-color" content="#06030f">
+<meta name="mobile-web-app-capable" content="yes">
+<title>Sentinel Core</title>
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" href="/icons/icon-192.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Space+Mono:wght@400;700&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet">
+<style>
+
+/* ═══════════════════════════════════════
+   TOKENS
+═══════════════════════════════════════ */
+:root {
+  --bg:        #06030f;
+  --bg2:       #0b0818;
+  --bg3:       #100d20;
+  --bg4:       #160f2b;
+  --surface:   #1c1535;
+  --surface2:  #231b42;
+
+  /* Nebula */
+  --v1: #7c3aed;
+  --v2: #6d28d9;
+  --b1: #3b82f6;
+  --b2: #2563eb;
+  --c1: #06b6d4;
+
+  --gv:  rgba(124,58,237,0.18);
+  --gb:  rgba(59,130,246,0.14);
+  --gc:  rgba(6,182,212,0.10);
+
+  --grad:        linear-gradient(135deg,#a78bfa 0%,#818cf8 45%,#38bdf8 100%);
+  --grad-btn:    linear-gradient(135deg,#7c3aed 0%,#4f46e5 55%,#3b82f6 100%);
+  --grad-glow:   radial-gradient(ellipse 80% 60% at 50% 50%,rgba(124,58,237,0.22),transparent 70%);
+
+  --border:  rgba(124,58,237,0.2);
+  --border2: rgba(99,102,241,0.38);
+  --border3: rgba(59,130,246,0.22);
+
+  --text:  #ece8f8;
+  --text2: #9b93c4;
+  --text3: #5c5480;
+
+  --mono: 'Space Mono', monospace;
+  --sans: 'DM Sans', sans-serif;
+  --r:    14px;
+  --rs:   9px;
+
+  --safe-t: env(safe-area-inset-top, 44px);
+  --safe-b: env(safe-area-inset-bottom, 20px);
+}
+
+*,*::before,*::after { box-sizing:border-box; margin:0; padding:0; }
+html { height:100%; height:-webkit-fill-available; }
+body {
+  height:100%; height:-webkit-fill-available;
+  background:var(--bg);
+  color:var(--text);
+  font-family:var(--sans);
+  overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+  -webkit-text-size-adjust:100%;
+  -webkit-tap-highlight-color:transparent;
+  user-select:none;
+}
+
+/* ── NEBULA CANVAS BG ── */
+#nebula-canvas {
+  position:fixed; inset:0; z-index:0;
+  pointer-events:none;
+}
+
+/* ── APP SHELL ── */
+.app {
+  position:relative; z-index:1;
+  display:flex; flex-direction:column;
+  height:100%; height:-webkit-fill-available;
+}
+
+/* ══════════════════════════════════════
+   SPLASH SCREEN
+══════════════════════════════════════ */
+#splash {
+  position:fixed; inset:0; z-index:100;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  padding: calc(var(--safe-t) + 20px) 28px calc(var(--safe-b) + 20px);
+  background:var(--bg);
+  transition:opacity 0.6s ease, transform 0.6s ease;
+}
+
+#splash.hiding {
+  opacity:0;
+  transform:scale(0.97) translateY(-12px);
+  pointer-events:none;
+}
+
+/* Knight helm SVG container */
+.helm-wrap {
+  position:relative;
+  width:160px; height:160px;
+  margin-bottom:28px;
+  flex-shrink:0;
+}
+
+.helm-glow {
+  position:absolute; inset:-30px;
+  background:radial-gradient(ellipse 70% 70% at 50% 55%,rgba(124,58,237,0.35),transparent 70%);
+  animation:helmGlow 3.5s ease-in-out infinite;
+}
+
+@keyframes helmGlow {
+  0%,100% { opacity:0.7; transform:scale(1); }
+  50%      { opacity:1;   transform:scale(1.08); }
+}
+
+.helm-ring {
+  position:absolute; inset:-14px;
+  border:1px solid rgba(124,58,237,0.22);
+  border-radius:50%;
+  animation:ringPulse 4s linear infinite;
+}
+.helm-ring:nth-child(2) {
+  inset:-28px;
+  border-color:rgba(59,130,246,0.14);
+  animation-duration:6s;
+  animation-direction:reverse;
+}
+
+@keyframes ringPulse {
+  from { transform:rotate(0deg); }
+  to   { transform:rotate(360deg); }
+}
+
+.helm-svg {
+  position:relative; z-index:2;
+  width:160px; height:160px;
+  filter:drop-shadow(0 0 20px rgba(124,58,237,0.5)) drop-shadow(0 0 40px rgba(59,130,246,0.3));
+  animation:helmFloat 5s ease-in-out infinite;
+}
+
+@keyframes helmFloat {
+  0%,100% { transform:translateY(0px) rotate(-1deg); }
+  50%      { transform:translateY(-8px) rotate(1deg); }
+}
+
+/* Particle sparks */
+.sparks {
+  position:absolute; inset:0; pointer-events:none; z-index:3;
+}
+.spark {
+  position:absolute;
+  width:2px; height:2px;
+  border-radius:50%;
+  background:#a78bfa;
+  animation:sparkFloat var(--dur) ease-in-out infinite var(--delay);
+}
+@keyframes sparkFloat {
+  0%   { opacity:0; transform:translate(0,0) scale(0); }
+  20%  { opacity:1; transform:translate(var(--tx),var(--ty)) scale(1); }
+  100% { opacity:0; transform:translate(calc(var(--tx)*2.5),calc(var(--ty)*2.5)) scale(0); }
+}
+
+/* Splash text */
+.splash-title {
+  font-family:var(--mono);
+  font-size:28px; font-weight:700;
+  letter-spacing:0.18em;
+  text-transform:uppercase;
+  background:var(--grad);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+  margin-bottom:8px;
+  text-align:center;
+}
+
+.splash-subtitle {
+  font-family:var(--mono);
+  font-size:11px;
+  color:var(--text3);
+  letter-spacing:0.22em;
+  text-transform:uppercase;
+  margin-bottom:6px;
+  text-align:center;
+}
+
+.splash-tagline {
+  font-size:14px;
+  color:var(--text2);
+  text-align:center;
+  line-height:1.55;
+  max-width:280px;
+  margin-bottom:32px;
+}
+
+/* Status grid */
+.splash-stats {
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:10px;
+  width:100%; max-width:320px;
+  margin-bottom:28px;
+}
+
+.stat-card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:12px 14px;
+  position:relative;
+  overflow:hidden;
+}
+.stat-card::before {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(135deg,var(--gv) 0%,transparent 60%);
+  opacity:0.5;
+}
+.stat-label {
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--text3);
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  margin-bottom:4px;
+}
+.stat-value {
+  font-family:var(--mono);
+  font-size:13px;
+  font-weight:700;
+  background:var(--grad);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+
+/* Brain roster on splash */
+.splash-brains {
+  display:flex; gap:6px;
+  flex-wrap:wrap;
+  justify-content:center;
+  margin-bottom:32px;
+  max-width:320px;
+}
+.splash-brain-pill {
+  display:flex; align-items:center; gap:5px;
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:20px;
+  padding:5px 11px;
+  font-family:var(--mono);
+  font-size:10px;
+  color:var(--text2);
+  letter-spacing:0.04em;
+}
+.splash-brain-dot {
+  width:6px; height:6px;
+  border-radius:50%;
+  flex-shrink:0;
+}
+
+/* Enter button */
+.enter-btn {
+  width:100%; max-width:320px;
+  padding:15px;
+  background:var(--grad-btn);
+  border:none;
+  border-radius:var(--r);
+  color:#fff;
+  font-family:var(--mono);
+  font-size:13px;
+  font-weight:700;
+  letter-spacing:0.12em;
+  text-transform:uppercase;
+  cursor:pointer;
+  position:relative;
+  overflow:hidden;
+  transition:transform 0.15s, box-shadow 0.15s;
+  box-shadow:0 4px 24px rgba(124,58,237,0.35), 0 0 0 1px rgba(124,58,237,0.3);
+}
+.enter-btn::after {
+  content:'';
+  position:absolute; inset:0;
+  background:linear-gradient(135deg,rgba(255,255,255,0.12),transparent 50%);
+}
+.enter-btn:active { transform:scale(0.97); }
+
+.enter-btn-shimmer {
+  position:absolute; inset:0;
+  background:linear-gradient(90deg,transparent 0%,rgba(255,255,255,0.15) 50%,transparent 100%);
+  background-size:200% 100%;
+  animation:shimmer 2.4s ease-in-out infinite;
+}
+@keyframes shimmer {
+  0%   { background-position:200% center; }
+  100% { background-position:-200% center; }
+}
+
+/* ══════════════════════════════════════
+   CHAT UI
+══════════════════════════════════════ */
+#chat-ui {
+  display:none;
+  flex-direction:column;
+  height:100%; height:-webkit-fill-available;
+}
+#chat-ui.visible { display:flex; }
+
+/* Header */
+.hdr {
+  background:rgba(11,8,24,0.92);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-bottom:1px solid var(--border);
+  padding: calc(var(--safe-t) + 6px) 14px 10px;
+  flex-shrink:0;
+  display:flex; align-items:center; gap:10px;
+}
+
+.hdr-helm {
+  width:34px; height:34px; flex-shrink:0;
+  filter:drop-shadow(0 0 6px rgba(124,58,237,0.5));
+}
+
+.hdr-text { flex:1; min-width:0; }
+.hdr-name {
+  font-family:var(--mono);
+  font-size:13px; font-weight:700;
+  letter-spacing:0.1em;
+  background:var(--grad);
+  -webkit-background-clip:text;
+  -webkit-text-fill-color:transparent;
+  background-clip:text;
+}
+.hdr-sub {
+  font-family:var(--mono);
+  font-size:9px;
+  color:var(--text3);
+  letter-spacing:0.08em;
+  white-space:nowrap; overflow:hidden; text-overflow:ellipsis;
+}
+
+.hdr-right { display:flex; align-items:center; gap:8px; flex-shrink:0; }
+.online-pill {
+  display:flex; align-items:center; gap:5px;
+  background:rgba(124,58,237,0.1);
+  border:1px solid rgba(124,58,237,0.25);
+  padding:4px 9px; border-radius:20px;
+}
+.online-dot {
+  width:5px; height:5px; border-radius:50%;
+  background:#a78bfa;
+  box-shadow:0 0 5px #a78bfa;
+  animation:blink 2.8s ease-in-out infinite;
+}
+@keyframes blink {
+  0%,100% { opacity:1; } 50% { opacity:0.4; }
+}
+.online-txt {
+  font-family:var(--mono); font-size:9px;
+  color:#a78bfa; letter-spacing:0.08em;
+}
+.icon-btn {
+  background:none;
+  border:1px solid var(--border);
+  border-radius:var(--rs);
+  color:var(--text3);
+  width:30px; height:30px;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.15s;
+  flex-shrink:0;
+}
+.icon-btn:active { background:var(--gv); color:#a78bfa; border-color:var(--border2); }
+
+/* Brain bar */
+.brain-bar {
+  background:rgba(11,8,24,0.88);
+  backdrop-filter:blur(10px);
+  -webkit-backdrop-filter:blur(10px);
+  border-bottom:1px solid var(--border);
+  padding:7px 12px;
+  flex-shrink:0;
+  overflow-x:auto; overflow-y:hidden;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.brain-bar::-webkit-scrollbar { display:none; }
+.brain-chips { display:flex; gap:6px; width:max-content; }
+
+.brain-chip {
+  display:flex; align-items:center; gap:5px;
+  padding:5px 12px; border-radius:20px;
+  border:1px solid var(--border);
+  background:transparent;
+  color:var(--text3);
+  font-family:var(--mono); font-size:10px;
+  letter-spacing:0.04em;
+  cursor:pointer; transition:all 0.18s;
+  white-space:nowrap;
+  -webkit-tap-highlight-color:transparent;
+}
+.brain-chip.active {
+  border-color:var(--border2);
+  background:var(--gv);
+  color:#c4b5fd;
+}
+.brain-dot { width:6px; height:6px; border-radius:50%; flex-shrink:0; }
+
+/* Chat scroll */
+.chat-scroll {
+  flex:1;
+  overflow-y:auto; overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding:16px 13px 8px;
+  display:flex; flex-direction:column; gap:18px;
+}
+.chat-scroll::-webkit-scrollbar { display:none; }
+
+/* Empty state (first load into chat) */
+.chat-empty {
+  flex:1;
+  display:flex; flex-direction:column;
+  align-items:center; justify-content:center;
+  gap:16px; padding:20px;
+  text-align:center;
+  animation:fadeUp 0.35s ease;
+}
+.chat-empty-label {
+  font-family:var(--mono); font-size:11px;
+  color:var(--text3); letter-spacing:0.1em;
+  text-transform:uppercase;
+}
+.quick-grid {
+  display:grid; grid-template-columns:1fr 1fr;
+  gap:8px; width:100%; max-width:340px;
+}
+.quick-card {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-radius:var(--rs);
+  padding:11px 12px;
+  cursor:pointer; transition:all 0.18s;
+  text-align:left;
+  -webkit-tap-highlight-color:transparent;
+}
+.quick-card:active {
+  background:var(--gv); border-color:var(--border2);
+  transform:scale(0.97);
+}
+.qc-icon { font-size:15px; margin-bottom:5px; }
+.qc-label { font-size:12px; color:var(--text2); line-height:1.4; }
+
+/* Messages */
+.msg {
+  display:flex; gap:9px;
+  animation:fadeUp 0.22s ease;
+}
+@keyframes fadeUp {
+  from { opacity:0; transform:translateY(10px); }
+  to   { opacity:1; transform:translateY(0); }
+}
+
+.msg.user { flex-direction:row-reverse; }
+.msg-av {
+  width:28px; height:28px;
+  border-radius:8px; flex-shrink:0;
+  align-self:flex-end;
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:9px; font-weight:700;
+}
+.msg.agent .msg-av {
+  background:var(--gv);
+  border:1px solid rgba(124,58,237,0.4);
+  color:#a78bfa;
+}
+.msg.user .msg-av {
+  background:var(--surface);
+  border:1px solid var(--border);
+  color:var(--text2);
+}
+.msg-body { flex:1; min-width:0; }
+.msg-meta {
+  display:flex; align-items:center; gap:6px;
+  margin-bottom:4px;
+}
+.msg.user .msg-meta { justify-content:flex-end; }
+.msg-sender {
+  font-family:var(--mono); font-size:9px;
+  color:var(--text3); letter-spacing:0.06em;
+}
+.brain-tag {
+  font-family:var(--mono); font-size:8px;
+  padding:1px 6px; border-radius:20px;
+  border:1px solid;
+}
+.msg-bubble {
+  padding:11px 14px;
+  font-size:14px; line-height:1.68;
+  border-radius:var(--r);
+  color:var(--text); user-select:text;
+}
+.msg.agent .msg-bubble {
+  background:var(--bg2);
+  border:1px solid var(--border);
+  border-bottom-left-radius:4px;
+}
+.msg.user .msg-bubble {
+  background:linear-gradient(135deg,rgba(124,58,237,0.18),rgba(79,70,229,0.13));
+  border:1px solid rgba(124,58,237,0.28);
+  border-bottom-right-radius:4px;
+}
+
+/* Markdown */
+.msg-bubble p { margin-bottom:8px; }
+.msg-bubble p:last-child { margin-bottom:0; }
+.msg-bubble ul,.msg-bubble ol { padding-left:18px; margin:8px 0; }
+.msg-bubble li { margin-bottom:3px; }
+.msg-bubble strong { color:#c4b5fd; font-weight:600; }
+.msg-bubble em { color:var(--text2); }
+.msg-bubble h1 { font-size:16px; font-weight:600; margin:14px 0 6px; }
+.msg-bubble h2 { font-size:14px; font-weight:600; background:var(--grad); -webkit-background-clip:text; -webkit-text-fill-color:transparent; background-clip:text; margin:12px 0 5px; }
+.msg-bubble h3 { font-size:13px; font-weight:500; color:#a78bfa; margin:10px 0 4px; }
+.msg-bubble hr  { border:none; border-top:1px solid var(--border); margin:10px 0; }
+.msg-bubble a   { color:#818cf8; }
+.msg-bubble blockquote { border-left:2px solid rgba(124,58,237,0.4); padding-left:10px; color:var(--text2); margin:8px 0; }
+.msg-bubble table { width:100%; border-collapse:collapse; font-size:12.5px; margin:8px 0; }
+.msg-bubble th { background:var(--surface); color:#c4b5fd; padding:6px 10px; text-align:left; border:1px solid var(--border); font-weight:500; }
+.msg-bubble td { padding:6px 10px; border:1px solid var(--border); color:var(--text2); }
+.msg-bubble code {
+  font-family:var(--mono); font-size:11.5px;
+  background:var(--bg4); border:1px solid var(--border);
+  padding:1px 5px; border-radius:4px; color:#93c5fd;
+}
+.msg-bubble pre {
+  background:var(--bg); border:1px solid var(--border);
+  border-left:2px solid rgba(124,58,237,0.55);
+  border-radius:var(--rs); padding:12px;
+  overflow-x:auto; margin:10px 0;
+  -webkit-overflow-scrolling:touch;
+}
+.msg-bubble pre code { background:none; border:none; padding:0; color:#a5b4fc; }
+
+/* Thinking */
+.thinking-row {
+  display:flex; gap:9px; align-items:flex-end;
+  animation:fadeUp 0.2s ease;
+  padding: 0 0 4px;
+}
+.thinking-av {
+  width:28px; height:28px; border-radius:8px;
+  background:var(--gv); border:1px solid rgba(124,58,237,0.4);
+  display:flex; align-items:center; justify-content:center;
+  font-family:var(--mono); font-size:9px; font-weight:700;
+  color:#a78bfa; flex-shrink:0;
+}
+.thinking-bubble {
+  padding:11px 14px;
+  background:var(--bg2); border:1px solid var(--border);
+  border-radius:var(--r); border-bottom-left-radius:4px;
+  display:flex; align-items:center; gap:4px;
+}
+.thinking-label {
+  font-family:var(--mono); font-size:9px;
+  color:var(--text3); letter-spacing:0.06em; margin-right:4px;
+}
+.tdot {
+  width:5px; height:5px; border-radius:50%;
+  background:linear-gradient(135deg,#7c3aed,#3b82f6);
+  animation:tdotBounce 1.3s ease-in-out infinite;
+}
+.tdot:nth-child(3) { animation-delay:.15s; }
+.tdot:nth-child(4) { animation-delay:.3s; }
+@keyframes tdotBounce {
+  0%,60%,100% { transform:translateY(0); opacity:.35; }
+  30%          { transform:translateY(-5px); opacity:1; }
+}
+
+/* Input zone */
+.input-zone {
+  background:rgba(11,8,24,0.94);
+  backdrop-filter:blur(16px);
+  -webkit-backdrop-filter:blur(16px);
+  border-top:1px solid var(--border);
+  padding:10px 12px calc(var(--safe-b) + 10px);
+  flex-shrink:0;
+}
+.input-wrap {
+  display:flex; gap:8px; align-items:flex-end;
+  background:var(--bg3);
+  border:1px solid var(--border);
+  border-radius:var(--r);
+  padding:9px 9px 9px 14px;
+  transition:border-color 0.18s;
+}
+.input-wrap:focus-within {
+  border-color:rgba(124,58,237,0.45);
+  box-shadow:0 0 0 3px rgba(124,58,237,0.07);
+}
+.input-field {
+  flex:1; background:none; border:none; outline:none;
+  color:var(--text); font-family:var(--sans);
+  font-size:15px; line-height:1.5;
+  resize:none; min-height:24px; max-height:140px;
+  overflow-y:auto; -webkit-overflow-scrolling:touch;
+  -webkit-appearance:none;
+}
+.input-field::placeholder { color:var(--text3); }
+.input-field::-webkit-scrollbar { display:none; }
+.send-btn {
+  width:36px; height:36px; border-radius:10px;
+  background:var(--grad-btn); border:none;
+  display:flex; align-items:center; justify-content:center;
+  cursor:pointer; transition:all 0.15s; flex-shrink:0;
+  box-shadow:0 2px 12px rgba(124,58,237,0.3);
+}
+.send-btn:active { transform:scale(0.93); }
+.send-btn:disabled { opacity:0.35; pointer-events:none; }
+.send-btn svg { width:16px; height:16px; stroke:#fff; }
+
+/* Settings sheet */
+.overlay {
+  position:fixed; inset:0; z-index:80;
+  background:rgba(6,3,15,0.8);
+  backdrop-filter:blur(8px);
+  -webkit-backdrop-filter:blur(8px);
+  display:flex; align-items:flex-end;
+  opacity:0; pointer-events:none;
+  transition:opacity 0.25s;
+}
+.overlay.show { opacity:1; pointer-events:all; }
+.sheet {
+  width:100%; background:var(--bg2);
+  border-top:1px solid var(--border);
+  border-radius:22px 22px 0 0;
+  padding:0 0 calc(var(--safe-b) + 16px);
+  transform:translateY(100%);
+  transition:transform 0.3s cubic-bezier(.4,0,.2,1);
+  max-height:82vh; overflow-y:auto;
+}
+.overlay.show .sheet { transform:translateY(0); }
+.sheet-handle {
+  width:36px; height:4px;
+  background:var(--border2); border-radius:2px;
+  margin:12px auto 4px;
+}
+.sheet-title {
+  font-family:var(--mono); font-size:10px;
+  font-weight:700; letter-spacing:0.12em;
+  text-transform:uppercase; color:var(--text3);
+  padding:12px 18px 8px;
+  border-bottom:1px solid var(--border);
+}
+.sheet-item {
+  display:flex; align-items:center; gap:12px;
+  padding:13px 18px;
+  border-bottom:1px solid var(--border);
+  cursor:pointer; transition:background 0.15s;
+  -webkit-tap-highlight-color:transparent;
+}
+.sheet-item:active { background:var(--gv); }
+.sheet-item:last-child { border-bottom:none; }
+.si-icon {
+  width:36px; height:36px; border-radius:10px;
+  display:flex; align-items:center; justify-content:center;
+  flex-shrink:0; font-family:var(--mono); font-size:13px; font-weight:700;
+}
+.si-title { font-size:14px; font-weight:500; color:var(--text); }
+.si-sub { font-size:11px; color:var(--text3); margin-top:2px; }
+.si-check { margin-left:auto; color:#a78bfa; }
+.sep { height:8px; background:var(--bg); }
+.danger .si-title { color:#f87171; }
+
+/* Toast */
+.toast {
+  position:fixed; z-index:200;
+  bottom:calc(var(--safe-b) + 95px);
+  left:50%;
+  transform:translateX(-50%) translateY(14px);
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--text);
+  font-family:var(--mono); font-size:11px;
+  padding:8px 16px; border-radius:20px;
+  opacity:0; transition:all 0.28s;
+  pointer-events:none; white-space:nowrap;
+  letter-spacing:0.04em;
+}
+.toast.show { opacity:1; transform:translateX(-50%) translateY(0); }
+
+</style>
+</head>
+<body>
+
+<!-- NEBULA CANVAS -->
+<canvas id="nebula-canvas"></canvas>
+
+<!-- ══ SPLASH ══ -->
+<div id="splash">
+
+  <div class="helm-wrap">
+    <div class="helm-glow"></div>
+    <div class="helm-ring"></div>
+    <div class="helm-ring"></div>
+    <!-- KNIGHT HELMET SVG -->
+    <svg class="helm-svg" viewBox="0 0 160 160" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="hg1" x1="30" y1="10" x2="130" y2="155">
+          <stop offset="0%" stop-color="#c4b5fd"/>
+          <stop offset="40%" stop-color="#818cf8"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+        <linearGradient id="hg2" x1="60" y1="10" x2="100" y2="120">
+          <stop offset="0%" stop-color="rgba(196,181,253,0.8)"/>
+          <stop offset="100%" stop-color="rgba(56,189,248,0.6)"/>
+        </linearGradient>
+        <linearGradient id="hg3" x1="40" y1="60" x2="120" y2="110">
+          <stop offset="0%" stop-color="rgba(124,58,237,0.7)"/>
+          <stop offset="100%" stop-color="rgba(59,130,246,0.5)"/>
+        </linearGradient>
+        <filter id="glow">
+          <feGaussianBlur stdDeviation="2.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+        <filter id="glow2">
+          <feGaussianBlur stdDeviation="1.5" result="blur"/>
+          <feMerge><feMergeNode in="blur"/><feMergeNode in="SourceGraphic"/></feMerge>
+        </filter>
+      </defs>
+
+      <!-- Base helm shape — great helm style -->
+      <!-- Main body -->
+      <path d="M48 62 C46 48 50 34 58 26 C64 20 72 16 80 15 C88 16 96 20 102 26 C110 34 114 48 112 62 L110 105 C110 114 104 122 96 126 L90 130 C86 134 82 136 80 136 C78 136 74 134 70 130 L64 126 C56 122 50 114 50 105 Z"
+            fill="url(#hg3)" stroke="url(#hg1)" stroke-width="2" filter="url(#glow)"/>
+
+      <!-- Helm top dome -->
+      <path d="M58 26 C64 20 72 16 80 15 C88 16 96 20 102 26 C112 36 115 52 112 65 L48 65 C45 52 48 36 58 26 Z"
+            fill="url(#hg1)" opacity="0.6"/>
+
+      <!-- Crest / plume base -->
+      <path d="M72 15 L80 8 L88 15" stroke="url(#hg2)" stroke-width="2.5" stroke-linecap="round" fill="none"/>
+      <path d="M76 10 L80 4 L84 10" stroke="url(#hg1)" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+      <!-- Crest top -->
+      <path d="M78 4 Q80 0 82 4 Q86 -2 88 5 Q84 2 80 6 Q76 2 72 5 Q74 -2 78 4Z"
+            fill="url(#hg1)" opacity="0.9"/>
+
+      <!-- Visor opening — T-shaped -->
+      <!-- Horizontal eye slit -->
+      <rect x="54" y="68" width="52" height="9" rx="4" fill="var(--bg)" stroke="url(#hg2)" stroke-width="1.2"/>
+      <!-- Vertical nose guard -->
+      <rect x="76" y="68" width="8" height="28" rx="3" fill="var(--bg)" stroke="url(#hg2)" stroke-width="1"/>
+
+      <!-- Visor grill lines (horizontal bars below eyes) -->
+      <line x1="57" y1="88" x2="74" y2="88" stroke="url(#hg2)" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+      <line x1="86" y1="88" x2="103" y2="88" stroke="url(#hg2)" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+      <line x1="57" y1="96" x2="74" y2="96" stroke="url(#hg2)" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+      <line x1="86" y1="96" x2="103" y2="96" stroke="url(#hg2)" stroke-width="1.2" stroke-linecap="round" opacity="0.7"/>
+
+      <!-- Inner eye glow -->
+      <ellipse cx="63" cy="72" rx="5" ry="2.5" fill="#7c3aed" opacity="0.5" filter="url(#glow2)"/>
+      <ellipse cx="97" cy="72" rx="5" ry="2.5" fill="#3b82f6" opacity="0.5" filter="url(#glow2)"/>
+
+      <!-- Cheek plates -->
+      <path d="M48 65 L44 90 C43 98 46 106 52 112 L62 120" stroke="url(#hg1)" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+      <path d="M112 65 L116 90 C117 98 114 106 108 112 L98 120" stroke="url(#hg1)" stroke-width="1.8" fill="none" stroke-linecap="round"/>
+
+      <!-- Chin guard detail -->
+      <path d="M62 120 C68 128 76 132 80 133 C84 132 92 128 98 120" stroke="url(#hg2)" stroke-width="1.5" fill="none" stroke-linecap="round"/>
+
+      <!-- Rivets / bolts -->
+      <circle cx="52" cy="70" r="2.5" fill="none" stroke="url(#hg2)" stroke-width="1" opacity="0.7"/>
+      <circle cx="108" cy="70" r="2.5" fill="none" stroke="url(#hg2)" stroke-width="1" opacity="0.7"/>
+      <circle cx="50" cy="92" r="2" fill="none" stroke="url(#hg2)" stroke-width="1" opacity="0.5"/>
+      <circle cx="110" cy="92" r="2" fill="none" stroke="url(#hg2)" stroke-width="1" opacity="0.5"/>
+
+      <!-- S emblem on forehead -->
+      <text x="80" y="58" text-anchor="middle" dominant-baseline="central"
+            font-family="Space Mono, monospace" font-size="16" font-weight="700"
+            fill="url(#hg1)" filter="url(#glow2)" opacity="0.9">S</text>
+
+      <!-- Highlight sheen -->
+      <path d="M62 22 C68 18 74 16 80 16 C74 30 62 44 56 58 C52 44 56 30 62 22 Z"
+            fill="white" opacity="0.06"/>
+    </svg>
+    <div class="sparks" id="sparks"></div>
+  </div>
+
+  <div class="splash-title">SENTINEL</div>
+  <div class="splash-subtitle">Core v1.0 · Mohammad Halabi</div>
+  <div class="splash-tagline">Your personal cybersecurity command center. Multi-brain. Always ready.</div>
+
+  <div class="splash-stats">
+    <div class="stat-card">
+      <div class="stat-label">Status</div>
+      <div class="stat-value" id="splash-status">Checking…</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Brains</div>
+      <div class="stat-value">5 Active</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">Anthropic</div>
+      <div class="stat-value" id="splash-anth">—</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">OpenAI</div>
+      <div class="stat-value" id="splash-oai">—</div>
+    </div>
+  </div>
+
+  <div class="splash-brains">
+    <div class="splash-brain-pill"><span class="splash-brain-dot" style="background:#a78bfa"></span>GPT-5.5 Deep</div>
+    <div class="splash-brain-pill"><span class="splash-brain-dot" style="background:#c4b5fd"></span>GPT-5.5 Max</div>
+    <div class="splash-brain-pill"><span class="splash-brain-dot" style="background:#34d399"></span>GPT-5.5</div>
+    <div class="splash-brain-pill"><span class="splash-brain-dot" style="background:#6ee7b7"></span>GPT-5.4</div>
+    <div class="splash-brain-pill"><span class="splash-brain-dot" style="background:#a7f3d0"></span>GPT-5.4 Mini</div>
+  </div>
+
+  <button class="enter-btn" id="enter-btn" onclick="enterChat()">
+    <div class="enter-btn-shimmer"></div>
+    ⬡ &nbsp;ENTER COMMAND CENTER
+  </button>
+
+</div>
+
+<!-- ══ CHAT UI ══ -->
+<div id="chat-ui">
+
+  <div class="hdr">
+    <svg class="hdr-helm" viewBox="0 0 160 160" fill="none">
+      <defs>
+        <linearGradient id="hh1" x1="30" y1="10" x2="130" y2="155">
+          <stop offset="0%" stop-color="#c4b5fd"/>
+          <stop offset="100%" stop-color="#38bdf8"/>
+        </linearGradient>
+      </defs>
+      <path d="M48 62 C46 48 50 34 58 26 C64 20 72 16 80 15 C88 16 96 20 102 26 C110 34 114 48 112 62 L110 105 C110 114 104 122 96 126 L80 136 L64 126 C56 122 50 114 50 105 Z" fill="url(#hh1)" opacity="0.4"/>
+      <rect x="54" y="68" width="52" height="8" rx="4" fill="#06030f" stroke="url(#hh1)" stroke-width="1"/>
+      <rect x="76" y="68" width="8" height="26" rx="3" fill="#06030f" stroke="url(#hh1)" stroke-width="0.8"/>
+      <ellipse cx="63" cy="72" rx="4" ry="2" fill="#7c3aed" opacity="0.7"/>
+      <ellipse cx="97" cy="72" rx="4" ry="2" fill="#3b82f6" opacity="0.7"/>
+    </svg>
+    <div class="hdr-text">
+      <div class="hdr-name">SENTINEL CORE</div>
+      <div class="hdr-sub" id="hdr-sub">Multi-brain · Auto-routing active</div>
+    </div>
+    <div class="hdr-right">
+      <div class="online-pill">
+        <div class="online-dot"></div>
+        <div class="online-txt">Online</div>
+      </div>
+      <button class="icon-btn" onclick="openSettings()" aria-label="Settings">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <circle cx="12" cy="12" r="3"/>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+  <div class="brain-bar">
+    <div class="brain-chips">
+      <button class="brain-chip active" data-brain="auto" onclick="selectBrain('auto',this)">
+        <span class="brain-dot" style="background:linear-gradient(135deg,#7c3aed,#3b82f6)"></span>Auto
+      </button>
+      <button class="brain-chip" data-brain="claude_sonnet" onclick="selectBrain('claude_sonnet',this)">
+        <span class="brain-dot" style="background:#a78bfa"></span>GPT-5.5 Deep
+      </button>
+      <button class="brain-chip" data-brain="claude_opus" onclick="selectBrain('claude_opus',this)">
+        <span class="brain-dot" style="background:#c4b5fd"></span>GPT-5.5 Max
+      </button>
+      <button class="brain-chip" data-brain="gpt55" onclick="selectBrain('gpt55',this)">
+        <span class="brain-dot" style="background:#34d399"></span>GPT-5.5
+      </button>
+      <button class="brain-chip" data-brain="gpt54" onclick="selectBrain('gpt54',this)">
+        <span class="brain-dot" style="background:#6ee7b7"></span>GPT-5.4
+      </button>
+      <button class="brain-chip" data-brain="gpt54_mini" onclick="selectBrain('gpt54_mini',this)">
+        <span class="brain-dot" style="background:#a7f3d0"></span>GPT-5.4 Mini
+      </button>
+    </div>
+  </div>
+
+  <div class="chat-scroll" id="chat"></div>
+  <div id="thinking-wrap" style="display:none; padding:0 13px 4px;"></div>
+
+  <div class="input-zone">
+    <div class="input-wrap">
+      <textarea id="input" class="input-field" placeholder="Ask Sentinel…" rows="1"
+        onkeydown="handleKey(event)" autocorrect="on" autocapitalize="sentences" spellcheck="true"></textarea>
+      <button class="send-btn" id="send-btn" onclick="sendMessage()" aria-label="Send">
+        <svg viewBox="0 0 24 24" stroke-width="2.5" fill="none">
+          <line x1="22" y1="2" x2="11" y2="13"/>
+          <polygon points="22 2 15 22 11 13 2 9 22 2"/>
+        </svg>
+      </button>
+    </div>
+  </div>
+
+</div>
+
+<!-- SETTINGS SHEET -->
+<div class="overlay" id="overlay" onclick="handleOverlayTap(event)">
+  <div class="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-title">Sentinel Settings</div>
+
+    <div class="sheet-item" onclick="promptToken()">
+      <div class="si-icon" style="background:rgba(124,58,237,0.15);color:#a78bfa">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+        </svg>
+      </div>
+      <div><div class="si-title">Access Token</div><div class="si-sub">Set your Sentinel auth token</div></div>
+    </div>
+
+    <div class="sep"></div>
+    <div class="sheet-title">Brains</div>
+
+    <div class="sheet-item">
+      <div class="si-icon" style="background:rgba(167,139,250,0.15);color:#a78bfa;font-family:monospace">A</div>
+      <div><div class="si-title">GPT-5.5 Deep</div><div class="si-sub">Default · Security, Linux, GDPR, notes</div></div>
+    </div>
+    <div class="sheet-item">
+      <div class="si-icon" style="background:rgba(196,181,253,0.12);color:#c4b5fd;font-family:monospace">A</div>
+      <div><div class="si-title">GPT-5.5 Max</div><div class="si-sub">Deep analysis · Research · Complex reasoning</div></div>
+    </div>
+    <div class="sheet-item">
+      <div class="si-icon" style="background:rgba(52,211,153,0.12);color:#34d399;font-family:monospace">G</div>
+      <div><div class="si-title">GPT-5.5</div><div class="si-sub">Flagship · Creative, hard reasoning, broad tasks</div></div>
+    </div>
+    <div class="sheet-item">
+      <div class="si-icon" style="background:rgba(110,231,183,0.10);color:#6ee7b7;font-family:monospace">G</div>
+      <div><div class="si-title">GPT-5.4</div><div class="si-sub">Professional · Writing, translation, summaries</div></div>
+    </div>
+    <div class="sheet-item">
+      <div class="si-icon" style="background:rgba(167,243,208,0.10);color:#a7f3d0;font-family:monospace">G</div>
+      <div><div class="si-title">GPT-5.4 Mini</div><div class="si-sub">Fast · Quick lookups · Short answers</div></div>
+    </div>
+
+    <div class="sep"></div>
+
+    <div class="sheet-item danger" onclick="clearHistory()">
+      <div class="si-icon" style="background:rgba(248,113,113,0.1);color:#f87171">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+        </svg>
+      </div>
+      <div><div class="si-title">Clear History</div><div class="si-sub">Erase all messages</div></div>
+    </div>
+
+    <div class="sheet-item" onclick="closeSettings()">
+      <div class="si-icon" style="background:var(--surface);color:var(--text3)">
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+        </svg>
+      </div>
+      <div><div class="si-title">Close</div></div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="/js/app.js"></script>
+</body>
+</html>
